@@ -1,0 +1,378 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>倒数日 - 轻应用工具集</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="manifest" href="../../manifest.json">
+  <style>
+    .countdown-hero {
+      text-align: center;
+      padding: 24px 16px 16px;
+    }
+    .big-days {
+      font-size: 4rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      line-height: 1;
+      letter-spacing: -0.03em;
+    }
+    .big-label {
+      font-size: 0.9rem;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+    }
+    .event-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      position: relative;
+      overflow: hidden;
+    }
+    .event-card::before {
+      content: '';
+      position: absolute;
+      left: 0;
+      top: 0;
+      bottom: 0;
+      width: 4px;
+    }
+    .event-card.type-love::before { background: #f472b6; }
+    .event-card.type-birthday::before { background: #fb923c; }
+    .event-card.type-exam::before { background: #6366f1; }
+    .event-card.type-holiday::before { background: #22c55e; }
+    .event-card.type-work::before { background: #3b82f6; }
+    .event-card.type-other::before { background: #94a3b8; }
+
+    .event-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 22px;
+      flex-shrink: 0;
+    }
+    .event-info { flex: 1; min-width: 0; }
+    .event-name { font-weight: 600; font-size: 0.95rem; }
+    .event-date { font-size: 0.8rem; color: var(--color-text-secondary); margin-top: 2px; }
+    .event-days {
+      font-weight: 700;
+      font-size: 1.1rem;
+      color: var(--color-primary);
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .event-days small {
+      display: block;
+      font-size: 0.7rem;
+      font-weight: 400;
+      color: var(--color-text-secondary);
+    }
+    .event-delete {
+      position: absolute;
+      right: 8px;
+      top: 6px;
+      background: none;
+      border: none;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+      font-size: 0.75rem;
+      opacity: 0;
+      transition: opacity 0.15s;
+      padding: 4px;
+    }
+    .event-card:hover .event-delete,
+    .event-card:active .event-delete { opacity: 1; }
+
+    .category-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+    .category-option {
+      padding: 10px 8px;
+      border: 2px solid var(--color-border);
+      border-radius: var(--radius);
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.15s;
+      background: var(--color-surface);
+    }
+    .category-option.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
+    }
+    .category-option .emoji { font-size: 1.3rem; display: block; margin-bottom: 2px; }
+
+    .section-title {
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+      padding: 0 4px;
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>⏳ 倒数日</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" id="btnExport" title="导出数据">📤</button>
+      <button class="btn btn-ghost btn-sm" id="btnImport" title="导入数据">📥</button>
+    </div>
+  </header>
+
+  <main class="container page" id="mainContent"></main>
+
+  <button class="fab" id="btnAdd">+</button>
+
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  <script src="../../js/core.js"></script>
+  <script>
+    const CATEGORIES = [
+      { id: 'love', name: '恋爱', emoji: '💕', icon: '#fce7f3' },
+      { id: 'birthday', name: '生日', emoji: '🎂', icon: '#fff7ed' },
+      { id: 'exam', name: '考试', emoji: '📚', icon: '#eef2ff' },
+      { id: 'holiday', name: '假期', emoji: '🎉', icon: '#dcfce7' },
+      { id: 'work', name: '工作', emoji: '💼', icon: '#eff6ff' },
+      { id: 'other', name: '其他', emoji: '📌', icon: '#f8fafc' },
+    ];
+
+    function getEventDays(event) {
+      return Utils.daysBetween(Utils.today(), event.date);
+    }
+
+    function getCategory(id) {
+      return CATEGORIES.find(c => c.id === id) || CATEGORIES[5];
+    }
+
+    function sortEvents(events) {
+      return [...events].sort((a, b) => {
+        const da = Math.abs(getEventDays(a));
+        const db = Math.abs(getEventDays(b));
+        return da - db;
+      });
+    }
+
+    function render() {
+      const events = sortEvents(App.get('events') || []);
+      const main = document.getElementById('mainContent');
+
+      if (events.length === 0) {
+        main.innerHTML = '';
+        main.appendChild(UI.emptyState({
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><circle cx="12" cy="16" r="1.5" fill="currentColor" stroke="none"/></svg>',
+          title: '还没有记录',
+          description: '点击右下角的 + 添加你的第一个倒数日吧',
+          actionText: '添加倒数日',
+          onAction: showAddModal
+        }));
+        return;
+      }
+
+      // Sort events by closest date
+      const nearest = events[0];
+      const days = getEventDays(nearest);
+      let heroHTML = '';
+      if (days === 0) {
+        heroHTML = '<div class="big-days" style="color:#f59e0b">今天</div><div class="big-label">就是「' + nearest.name + '」！</div>';
+      } else {
+        heroHTML = '<div class="big-days">' + Math.abs(days) + '</div><div class="big-label">距离「' + nearest.name + '」还有 ' + Math.abs(days) + ' 天</div>';
+      }
+
+      let listHTML = events.map(e => {
+        const d = getEventDays(e);
+        const cat = getCategory(e.type);
+        let daysText, daysLabel;
+        if (d === 0) { daysText = '今天'; daysLabel = ''; }
+        else if (d > 0) { daysText = d; daysLabel = '天后'; }
+        else { daysText = Math.abs(d); daysLabel = '天前'; }
+
+        return `
+          <div class="event-card type-${e.type}" data-id="${e.id}">
+            <div class="event-icon" style="background:${cat.icon}">${cat.emoji}</div>
+            <div class="event-info">
+              <div class="event-name">${e.name}</div>
+              <div class="event-date">${e.date} ${Utils.dayOfWeek(e.date)}</div>
+            </div>
+            <div class="event-days">
+              ${daysText}
+              <small>${daysLabel}</small>
+            </div>
+            <button class="event-delete" data-id="${e.id}" title="删除">✕</button>
+          </div>
+        `;
+      }).join('');
+
+      main.innerHTML = `
+        <div class="countdown-hero">${heroHTML}</div>
+        <div class="section-title">
+          <span>所有事件 (${events.length})</span>
+          <button class="btn btn-ghost btn-sm" onclick="App.exportData('countdown-backup')">导出</button>
+        </div>
+        ${listHTML}
+        <div style="height:80px"></div>
+      `;
+
+      // Event listeners
+      main.querySelectorAll('.event-card').forEach(card => {
+        card.addEventListener('click', (e) => {
+          if (e.target.closest('.event-delete')) return;
+          const id = card.dataset.id;
+          const event = events.find(ev => ev.id === id);
+          if (event) showEditModal(event);
+        });
+      });
+
+      main.querySelectorAll('.event-delete').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.id;
+          const ok = await UI.confirm({
+            title: '删除事件',
+            message: '确定要删除这个倒数日吗？',
+            danger: true
+          });
+          if (ok) {
+            const list = App.get('events').filter(e => e.id !== id);
+            App.set('events', list);
+            render();
+            UI.toast('已删除', 'info');
+          }
+        });
+      });
+    }
+
+    function showAddModal() {
+      showEventModal(null);
+    }
+
+    function showEditModal(event) {
+      showEventModal(event);
+    }
+
+    function showEventModal(event) {
+      const isEdit = !!event;
+      let selectedType = event ? event.type : 'other';
+
+      const formHTML = `
+        <div class="form-group">
+          <label class="form-label">名称</label>
+          <input class="form-input" id="evtName" value="${isEdit ? event.name : ''}" placeholder="例如：宝宝生日、考研倒计时">
+        </div>
+        <div class="form-group">
+          <label class="form-label">日期</label>
+          <input class="form-input" type="date" id="evtDate" value="${isEdit ? event.date : Utils.today()}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分类</label>
+          <div class="category-grid" id="categoryGrid"></div>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg mt-3" id="btnSave">
+          ${isEdit ? '保存修改' : '添加倒数日'}
+        </button>
+      `;
+
+      const m = UI.modal({
+        title: isEdit ? '编辑倒数日' : '添加倒数日',
+        content: formHTML
+      });
+
+      // Render category grid
+      const grid = m.getBody().querySelector('#categoryGrid');
+      CATEGORIES.forEach(cat => {
+        const div = document.createElement('div');
+        div.className = 'category-option' + (cat.id === selectedType ? ' selected' : '');
+        div.innerHTML = `<span class="emoji">${cat.emoji}</span>${cat.name}`;
+        div.addEventListener('click', () => {
+          grid.querySelectorAll('.category-option').forEach(d => d.classList.remove('selected'));
+          div.classList.add('selected');
+          selectedType = cat.id;
+        });
+        grid.appendChild(div);
+      });
+
+      // Save handler
+      m.getBody().querySelector('#btnSave').addEventListener('click', () => {
+        const name = m.getBody().querySelector('#evtName').value.trim();
+        const date = m.getBody().querySelector('#evtDate').value;
+
+        if (!name) { UI.toast('请输入名称', 'error'); return; }
+        if (!date) { UI.toast('请选择日期', 'error'); return; }
+
+        const events = App.get('events') || [];
+        if (isEdit) {
+          const idx = events.findIndex(e => e.id === event.id);
+          if (idx !== -1) {
+            events[idx] = { ...events[idx], name, date, type: selectedType };
+          }
+        } else {
+          events.push({
+            id: Utils.uid(),
+            name,
+            date,
+            type: selectedType,
+            createdAt: Utils.today()
+          });
+        }
+
+        App.set('events', events);
+        m.close();
+        render();
+        UI.toast(isEdit ? '已更新' : '已添加', 'success');
+      });
+    }
+
+    // Init
+    App.init({
+      name: 'countdown',
+      storageKey: 'app_countdown',
+      initialState: {
+        events: [
+          { id: 'demo1', name: '元旦', date: '2027-01-01', type: 'holiday', createdAt: '2026-05-24' },
+          { id: 'demo2', name: '国庆节', date: '2026-10-01', type: 'holiday', createdAt: '2026-05-24' },
+          { id: 'demo3', name: '我的生日', date: '2026-06-15', type: 'birthday', createdAt: '2026-05-24' },
+        ]
+      },
+      onInit() {
+        render();
+        document.getElementById('btnAdd').addEventListener('click', showAddModal);
+
+        document.getElementById('btnExport').addEventListener('click', () => {
+          App.exportData('countdown-backup');
+          UI.toast('数据已导出', 'success');
+        });
+
+        document.getElementById('btnImport').addEventListener('click', () => {
+          const input = document.createElement('input');
+          input.type = 'file';
+          input.accept = '.json';
+          input.onchange = async (e) => {
+            try {
+              await App.importData(e.target.files[0]);
+              render();
+              UI.toast('数据已导入', 'success');
+            } catch (err) {
+              UI.toast(err.message, 'error');
+            }
+          };
+          input.click();
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>记账本 - 轻应用工具集</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="manifest" href="../../manifest.json">
+  <style>
+    .balance-header {
+      text-align: center;
+      padding: 20px 16px;
+    }
+    .balance-label {
+      font-size: 0.8rem;
+      color: var(--color-text-secondary);
+      margin-bottom: 4px;
+    }
+    .balance-amount {
+      font-size: 2.2rem;
+      font-weight: 800;
+      color: var(--color-primary);
+      letter-spacing: -0.02em;
+    }
+    .balance-amount.negative { color: var(--color-danger); }
+    .income-expense {
+      display: flex;
+      gap: 12px;
+      padding: 0 16px;
+      margin-bottom: 16px;
+    }
+    .ie-card {
+      flex: 1;
+      padding: 12px;
+      border-radius: var(--radius);
+      text-align: center;
+    }
+    .ie-income { background: #dcfce7; }
+    .ie-expense { background: #fee2e2; }
+    .ie-label { font-size: 0.75rem; color: var(--color-text-secondary); }
+    .ie-amount {
+      font-size: 1.1rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+    .ie-income .ie-amount { color: #16a34a; }
+    .ie-expense .ie-amount { color: #dc2626; }
+
+    .record-item {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+    }
+    .record-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      flex-shrink: 0;
+    }
+    .record-info { flex: 1; min-width: 0; }
+    .record-cat { font-weight: 500; font-size: 0.9rem; }
+    .record-note { font-size: 0.75rem; color: var(--color-text-secondary); margin-top: 1px; }
+    .record-amount {
+      font-weight: 700;
+      font-size: 1rem;
+      text-align: right;
+      flex-shrink: 0;
+    }
+    .record-amount.income { color: #16a34a; }
+    .record-amount.expense { color: #dc2626; }
+    .record-date {
+      font-size: 0.7rem;
+      color: var(--color-text-secondary);
+      text-align: right;
+    }
+
+    .cat-icon-btn {
+      width: 52px;
+      height: 52px;
+      border-radius: 14px;
+      border: 2px solid var(--color-border);
+      background: var(--color-surface);
+      font-size: 1.4rem;
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+    .cat-icon-btn.selected {
+      border-color: var(--color-primary);
+      background: var(--color-primary-light);
+      transform: scale(1.05);
+    }
+    .cat-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      text-align: center;
+    }
+    .cat-item { font-size: 0.75rem; cursor: pointer; }
+    .cat-item .emoji { font-size: 1.5rem; display: block; margin-bottom: 2px; }
+
+    .type-switch {
+      display: flex;
+      background: var(--color-bg);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 16px;
+    }
+    .type-btn {
+      flex: 1;
+      padding: 10px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      font-weight: 600;
+      font-size: 0.9rem;
+      cursor: pointer;
+      transition: all 0.15s;
+      color: var(--color-text-secondary);
+    }
+    .type-btn.active-expense {
+      background: #fee2e2;
+      color: #dc2626;
+    }
+    .type-btn.active-income {
+      background: #dcfce7;
+      color: #16a34a;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>💰 记账本</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" id="btnExport">导出</button>
+    </div>
+  </header>
+
+  <main class="container page" id="mainContent"></main>
+
+  <button class="fab" id="btnAdd">+</button>
+
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  <script src="../../js/core.js"></script>
+  <script>
+    const EXPENSE_CATS = [
+      { id: 'food', name: '餐饮', emoji: '🍔' },
+      { id: 'transport', name: '交通', emoji: '🚗' },
+      { id: 'shopping', name: '购物', emoji: '🛍' },
+      { id: 'entertain', name: '娱乐', emoji: '🎮' },
+      { id: 'housing', name: '住房', emoji: '🏠' },
+      { id: 'medical', name: '医疗', emoji: '💊' },
+      { id: 'education', name: '学习', emoji: '📚' },
+      { id: 'other_exp', name: '其他', emoji: '📌' },
+    ];
+    const INCOME_CATS = [
+      { id: 'salary', name: '工资', emoji: '💵' },
+      { id: 'bonus', name: '奖金', emoji: '🎁' },
+      { id: 'freelance', name: '兼职', emoji: '💻' },
+      { id: 'invest', name: '理财', emoji: '📈' },
+      { id: 'redpacket', name: '红包', emoji: '🧧' },
+      { id: 'refund', name: '退款', emoji: '↩' },
+      { id: 'other_inc', name: '其他', emoji: '📌' },
+    ];
+
+    function getCat(id, type) {
+      const cats = type === 'income' ? INCOME_CATS : EXPENSE_CATS;
+      return cats.find(c => c.id === id) || cats[cats.length - 1];
+    }
+
+    function getRecords() {
+      return App.get('records') || [];
+    }
+
+    function getMonthRecords() {
+      const now = new Date();
+      const start = Utils.startOfMonth(now);
+      const end = Utils.endOfMonth(now);
+      return getRecords().filter(r => r.date >= start && r.date <= end).sort((a, b) => b.date.localeCompare(a.date) || b.createdAt - a.createdAt);
+    }
+
+    function calcStats(records) {
+      let income = 0, expense = 0;
+      records.forEach(r => {
+        if (r.type === 'income') income += r.amount;
+        else expense += r.amount;
+      });
+      return { income, expense, balance: income - expense };
+    }
+
+    function getCategoryStats(records, type) {
+      const cats = type === 'expense' ? EXPENSE_CATS : INCOME_CATS;
+      const map = {};
+      records.filter(r => r.type === type).forEach(r => {
+        map[r.category] = (map[r.category] || 0) + r.amount;
+      });
+      return cats.map(c => ({ ...c, amount: map[c.id] || 0 })).filter(c => c.amount > 0).sort((a, b) => b.amount - a.amount);
+    }
+
+    function render() {
+      const monthRecords = getMonthRecords();
+      const stats = calcStats(monthRecords);
+      const main = document.getElementById('mainContent');
+      const currentMonth = Utils.monthName(new Date().getMonth());
+
+      if (getRecords().length === 0) {
+        main.innerHTML = '';
+        main.appendChild(UI.emptyState({
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>',
+          title: '开始记账吧',
+          description: '点击右下角 + 记录第一笔',
+          actionText: '记一笔',
+          onAction: showAddModal
+        }));
+        return;
+      }
+
+      const expStats = getCategoryStats(monthRecords, 'expense');
+      const incStats = getCategoryStats(monthRecords, 'income');
+
+      let categoryHTML = '';
+      if (expStats.length > 0) {
+        const maxExp = expStats[0].amount;
+        categoryHTML += '<div class="section-title">支出分类</div>';
+        categoryHTML += expStats.map(c => `
+          <div style="display:flex;align-items:center;gap:10px;padding:8px 0;font-size:0.85rem">
+            <span>${c.emoji}</span>
+            <span style="flex:1">${c.name}</span>
+            <span style="color:#dc2626;font-weight:600">${Utils.fmtMoney(c.amount)}</span>
+            <div class="progress-bar" style="width:60px">
+              <div class="progress-fill danger" style="width:${Math.round((c.amount / maxExp) * 100)}%"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      main.innerHTML = `
+        <div class="balance-header">
+          <div class="balance-label">${currentMonth}余额</div>
+          <div class="balance-amount ${stats.balance < 0 ? 'negative' : ''}">${Utils.fmtMoney(stats.balance)}</div>
+        </div>
+        <div class="income-expense">
+          <div class="ie-card ie-income">
+            <div class="ie-label">收入</div>
+            <div class="ie-amount">${Utils.fmtMoney(stats.income)}</div>
+          </div>
+          <div class="ie-card ie-expense">
+            <div class="ie-label">支出</div>
+            <div class="ie-amount">${Utils.fmtMoney(stats.expense)}</div>
+          </div>
+        </div>
+
+        ${categoryHTML ? '<div style="margin-bottom:16px">' + categoryHTML + '</div>' : ''}
+
+        <div class="section-title">
+          <span>${currentMonth}流水 (${monthRecords.length}笔)</span>
+        </div>
+        ${monthRecords.map(r => {
+          const cat = getCat(r.category, r.type);
+          return `
+            <div class="record-item" data-id="${r.id}">
+              <div class="record-icon" style="background:${r.type === 'income' ? '#dcfce7' : '#fef2f2'}">${cat.emoji}</div>
+              <div class="record-info">
+                <div class="record-cat">${cat.name}</div>
+                ${r.note ? '<div class="record-note">' + r.note + '</div>' : ''}
+              </div>
+              <div>
+                <div class="record-amount ${r.type}">${r.type === 'income' ? '+' : '-'}${Utils.fmtMoney(r.amount)}</div>
+                <div class="record-date">${r.date.slice(5)}</div>
+              </div>
+            </div>
+          `;
+        }).join('')}
+        <div style="height:80px"></div>
+      `;
+
+      // Click record to edit/delete
+      main.querySelectorAll('.record-item').forEach(item => {
+        item.addEventListener('click', async () => {
+          const id = item.dataset.id;
+          const record = getRecords().find(r => r.id === id);
+          if (!record) return;
+
+          const ok = await UI.confirm({
+            title: '删除记录',
+            message: `确定删除「${getCat(record.category, record.type).name} ${Utils.fmtMoney(record.amount)}」吗？`,
+            danger: true
+          });
+          if (ok) {
+            App.set('records', getRecords().filter(r => r.id !== id));
+            render();
+            UI.toast('已删除', 'info');
+          }
+        });
+      });
+    }
+
+    function showAddModal() {
+      let recordType = 'expense';
+      let selectedCat = EXPENSE_CATS[0].id;
+
+      function getCurrentCats() {
+        return recordType === 'income' ? INCOME_CATS : EXPENSE_CATS;
+      }
+
+      const formHTML = `
+        <div class="type-switch" id="typeSwitch">
+          <button class="type-btn active-expense" data-type="expense">支出</button>
+          <button class="type-btn" data-type="income">收入</button>
+        </div>
+        <div class="form-group">
+          <label class="form-label">金额</label>
+          <input class="form-input" type="number" id="recAmount" placeholder="0.00" step="0.01" min="0.01" inputmode="decimal">
+        </div>
+        <div class="form-group">
+          <label class="form-label">分类</label>
+          <div class="cat-grid" id="catGrid"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">备注（可选）</label>
+          <input class="form-input" id="recNote" placeholder="例如：午餐外卖">
+        </div>
+        <div class="form-group">
+          <label class="form-label">日期</label>
+          <input class="form-input" type="date" id="recDate" value="${Utils.today()}">
+        </div>
+        <button class="btn btn-primary btn-block btn-lg mt-3" id="btnSave">记一笔</button>
+      `;
+
+      const m = UI.modal({ title: '记一笔', content: formHTML });
+
+      function renderCatGrid() {
+        const grid = m.getBody().querySelector('#catGrid');
+        grid.innerHTML = '';
+        getCurrentCats().forEach(cat => {
+          const div = document.createElement('div');
+          div.className = 'cat-item';
+          div.innerHTML = `<span class="emoji">${cat.emoji}</span>${cat.name}`;
+          div.addEventListener('click', () => {
+            grid.querySelectorAll('.cat-item').forEach(d => d.style.opacity = '0.5');
+            div.style.opacity = '1';
+            div.style.fontWeight = '600';
+            selectedCat = cat.id;
+          });
+          if (cat.id === selectedCat) { div.style.opacity = '1'; div.style.fontWeight = '600'; }
+          grid.appendChild(div);
+        });
+      }
+      renderCatGrid();
+
+      m.getBody().querySelectorAll('.type-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          recordType = btn.dataset.type;
+          m.getBody().querySelectorAll('.type-btn').forEach(b => {
+            b.className = 'type-btn';
+          });
+          btn.className = 'type-btn ' + (recordType === 'income' ? 'active-income' : 'active-expense');
+          selectedCat = getCurrentCats()[0].id;
+          renderCatGrid();
+        });
+      });
+
+      m.getBody().querySelector('#btnSave').addEventListener('click', () => {
+        const amount = parseFloat(m.getBody().querySelector('#recAmount').value);
+        if (!amount || amount <= 0) { UI.toast('请输入有效金额', 'error'); return; }
+
+        const note = m.getBody().querySelector('#recNote').value.trim();
+        const date = m.getBody().querySelector('#recDate').value;
+
+        const records = getRecords();
+        records.push({
+          id: Utils.uid(),
+          type: recordType,
+          amount,
+          category: selectedCat,
+          note,
+          date,
+          createdAt: Date.now()
+        });
+
+        App.set('records', records);
+        m.close();
+        render();
+        UI.toast('已记录', 'success');
+      });
+    }
+
+    // Init
+    App.init({
+      name: 'bookkeeping',
+      storageKey: 'app_bookkeeping',
+      initialState: { records: [] },
+      onInit() {
+        render();
+        document.getElementById('btnAdd').addEventListener('click', showAddModal);
+        document.getElementById('btnExport').addEventListener('click', () => {
+          App.exportData('bookkeeping-backup');
+          UI.toast('数据已导出', 'success');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

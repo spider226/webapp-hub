@@ -1,0 +1,375 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>番茄钟 - 轻应用工具集</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="manifest" href="../../manifest.json">
+  <style>
+    .timer-container {
+      text-align: center;
+      padding: 32px 16px;
+    }
+    .timer-ring {
+      position: relative;
+      width: 220px;
+      height: 220px;
+      margin: 0 auto 20px;
+    }
+    .timer-ring svg {
+      transform: rotate(-90deg);
+      width: 100%;
+      height: 100%;
+    }
+    .timer-time {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+    .timer-minutes {
+      font-size: 3.5rem;
+      font-weight: 800;
+      color: var(--color-text);
+      letter-spacing: -0.02em;
+      line-height: 1;
+    }
+    .timer-seconds {
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--color-text-secondary);
+    }
+    .timer-label {
+      font-size: 0.85rem;
+      color: var(--color-text-secondary);
+      margin-top: 4px;
+      padding: 4px 14px;
+      background: var(--color-bg);
+      border-radius: 100px;
+    }
+
+    .timer-controls {
+      display: flex;
+      gap: 12px;
+      justify-content: center;
+      margin-bottom: 24px;
+    }
+
+    .mode-selector {
+      display: flex;
+      gap: 4px;
+      background: var(--color-bg);
+      border-radius: var(--radius);
+      padding: 4px;
+      margin-bottom: 20px;
+      max-width: 320px;
+      margin-left: auto;
+      margin-right: auto;
+    }
+    .mode-btn {
+      flex: 1;
+      padding: 8px 4px;
+      border: none;
+      background: transparent;
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 500;
+      cursor: pointer;
+      color: var(--color-text-secondary);
+      transition: all 0.15s;
+    }
+    .mode-btn.active {
+      background: var(--color-surface);
+      color: var(--color-primary);
+      font-weight: 700;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .session-list {
+      padding: 0 16px;
+    }
+    .session-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 0;
+      font-size: 0.85rem;
+      border-bottom: 1px solid var(--color-border);
+    }
+    .session-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+    .session-dot.work { background: #ef4444; }
+    .session-dot.break { background: #22c55e; }
+    .session-info { flex: 1; }
+    .session-duration { color: var(--color-text-secondary); font-size: 0.8rem; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>🍅 番茄钟</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" id="btnReset">重置</button>
+    </div>
+  </header>
+
+  <main class="container page" id="mainContent"></main>
+
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  <script src="../../js/core.js"></script>
+  <script>
+    const MODES = {
+      work: { label: '专注', minutes: 25, color: '#ef4444' },
+      shortBreak: { label: '短休', minutes: 5, color: '#22c55e' },
+      longBreak: { label: '长休', minutes: 15, color: '#3b82f6' }
+    };
+
+    let timerInterval = null;
+    let currentMode = 'work';
+    let secondsLeft = MODES.work.minutes * 60;
+    let isRunning = false;
+    let currentTask = '';
+
+    function getTotalSeconds() {
+      return MODES[currentMode].minutes * 60;
+    }
+
+    function getSessions() {
+      return App.get('sessions') || [];
+    }
+
+    function getTodaySessions() {
+      const today = Utils.today();
+      return getSessions().filter(s => s.date === today);
+    }
+
+    function render() {
+      const total = getTotalSeconds();
+      const progress = total > 0 ? (total - secondsLeft) / total : 0;
+      const mins = Math.floor(secondsLeft / 60);
+      const secs = secondsLeft % 60;
+      const mode = MODES[currentMode];
+      const todaySessions = getTodaySessions();
+      const completedToday = todaySessions.filter(s => s.type === 'work').length;
+
+      const main = document.getElementById('mainContent');
+
+      main.innerHTML = `
+        <div class="timer-container">
+          <div class="timer-ring">
+            <svg viewBox="0 0 220 220">
+              <circle cx="110" cy="110" r="100" fill="none" stroke="var(--color-border)" stroke-width="8"/>
+              <circle cx="110" cy="110" r="100" fill="none" stroke="${mode.color}" stroke-width="8"
+                stroke-dasharray="${2 * Math.PI * 100}" stroke-dashoffset="${2 * Math.PI * 100 * (1 - progress)}"
+                stroke-linecap="round" style="transition: stroke-dashoffset 1s linear"/>
+            </svg>
+            <div class="timer-time">
+              <div class="timer-minutes">${String(mins).padStart(2, '0')}</div>
+              <div class="timer-seconds">:${String(secs).padStart(2, '0')}</div>
+              <div class="timer-label">
+                ${isRunning ? '▶ ' + mode.label + '中...' : '⏸ ' + mode.label}
+                ${currentTask ? ' · ' + currentTask : ''}
+              </div>
+            </div>
+          </div>
+
+          <div class="mode-selector" id="modeSelector">
+            <button class="mode-btn ${currentMode === 'work' ? 'active' : ''}" data-mode="work">🍅 专注 25分</button>
+            <button class="mode-btn ${currentMode === 'shortBreak' ? 'active' : ''}" data-mode="shortBreak">☕ 短休 5分</button>
+            <button class="mode-btn ${currentMode === 'longBreak' ? 'active' : ''}" data-mode="longBreak">🌴 长休 15分</button>
+          </div>
+
+          <div class="form-group" style="max-width:240px;margin:0 auto 16px">
+            <input class="form-input text-center" id="taskInput" placeholder="当前任务（可选）" value="${currentTask}">
+          </div>
+
+          <div class="timer-controls">
+            ${isRunning ? `
+              <button class="btn btn-secondary btn-lg" id="btnPause" style="width:120px">暂停</button>
+              <button class="btn btn-danger btn-lg" id="btnStop" style="width:80px">结束</button>
+            ` : `
+              <button class="btn btn-primary btn-lg" id="btnStart" style="width:140px">开始专注</button>
+              <button class="btn btn-ghost btn-lg" id="btnSkip" style="width:80px">跳过</button>
+            `}
+          </div>
+        </div>
+
+        <div style="padding:0 16px">
+          <div class="stats-grid">
+            <div class="stat-card">
+              <div class="stat-value">${completedToday}</div>
+              <div class="stat-label">今日番茄</div>
+            </div>
+            <div class="stat-card">
+              <div class="stat-value">${todaySessions.reduce((sum, s) => sum + s.duration, 0)}分</div>
+              <div class="stat-label">今日专注</div>
+            </div>
+          </div>
+
+          <div class="section-title">今日记录</div>
+          ${todaySessions.length === 0 ? '<div class="empty-state"><p style="color:var(--color-text-secondary)">今天还没有完成番茄钟</p></div>' : ''}
+          <div class="session-list">
+            ${todaySessions.slice().reverse().map(s => `
+              <div class="session-item">
+                <div class="session-dot ${s.type}"></div>
+                <div class="session-info">${s.type === 'work' ? '🍅 专注' : s.type === 'shortBreak' ? '☕ 短休' : '🌴 长休'} ${s.task || ''}</div>
+                <div class="session-duration">${s.duration} 分钟</div>
+              </div>
+            `).join('')}
+          </div>
+        </div>
+        <div style="height:40px"></div>
+      `;
+
+      // Bind events
+      document.getElementById('modeSelector').addEventListener('click', (e) => {
+        const btn = e.target.closest('.mode-btn');
+        if (!btn || isRunning) return;
+        currentMode = btn.dataset.mode;
+        secondsLeft = MODES[currentMode].minutes * 60;
+        render();
+      });
+
+      document.getElementById('taskInput').addEventListener('input', (e) => {
+        currentTask = e.target.value.trim();
+      });
+
+      if (isRunning) {
+        document.getElementById('btnPause').addEventListener('click', pause);
+        document.getElementById('btnStop').addEventListener('click', stop);
+      } else {
+        document.getElementById('btnStart').addEventListener('click', start);
+        document.getElementById('btnSkip').addEventListener('click', skip);
+      }
+
+      document.getElementById('btnReset').addEventListener('click', async () => {
+        if (isRunning) {
+          const ok = await UI.confirm({ title: '重置计时器', message: '当前计时将被取消，确定重置吗？' });
+          if (!ok) return;
+        }
+        stopTimer();
+        secondsLeft = MODES[currentMode].minutes * 60;
+        render();
+      });
+    }
+
+    function start() {
+      isRunning = true;
+      if (secondsLeft <= 0) secondsLeft = getTotalSeconds();
+      render();
+
+      timerInterval = setInterval(() => {
+        secondsLeft--;
+        if (secondsLeft <= 0) {
+          complete();
+        } else {
+          // Update timer display without full re-render
+          const mins = Math.floor(secondsLeft / 60);
+          const secs = secondsLeft % 60;
+          const total = getTotalSeconds();
+          const progress = total > 0 ? (total - secondsLeft) / total : 0;
+
+          const minsEl = document.querySelector('.timer-minutes');
+          const secsEl = document.querySelector('.timer-seconds');
+          const circle = document.querySelector('.timer-ring circle:last-child');
+          if (minsEl) minsEl.textContent = String(mins).padStart(2, '0');
+          if (secsEl) secsEl.textContent = ':' + String(secs).padStart(2, '0');
+          if (circle) circle.setAttribute('stroke-dashoffset', 2 * Math.PI * 100 * (1 - progress));
+        }
+      }, 1000);
+    }
+
+    function pause() {
+      stopTimer();
+      isRunning = false;
+      render();
+    }
+
+    function stop() {
+      stopTimer();
+      isRunning = false;
+      if (secondsLeft < getTotalSeconds()) {
+        // Record partial session
+        const duration = Math.round((getTotalSeconds() - secondsLeft) / 60);
+        if (duration > 0) {
+          saveSession(duration);
+        }
+      }
+      secondsLeft = getTotalSeconds();
+      render();
+    }
+
+    function skip() {
+      secondsLeft = getTotalSeconds();
+      render();
+      UI.toast('已跳过，进入下一阶段', 'info');
+    }
+
+    function complete() {
+      stopTimer();
+      isRunning = false;
+      const duration = MODES[currentMode].minutes;
+      saveSession(duration);
+
+      // Auto-switch mode
+      if (currentMode === 'work') {
+        const sessions = getTodaySessions().filter(s => s.type === 'work');
+        currentMode = sessions.length % 4 === 0 ? 'longBreak' : 'shortBreak';
+      } else {
+        currentMode = 'work';
+      }
+      secondsLeft = MODES[currentMode].minutes * 60;
+
+      render();
+      UI.toast('完成！休息一下吧 🎉', 'success');
+
+      // Play notification sound if supported
+      try {
+        const audio = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACAf39/f4B/f3+Af39/gH9/f4B/f3+Af39/gH9/f4B/f3+Af39/gH9/f4B/f3+Af39/gH9/f4B/f3+Af39/gH9/f4B/f3+Af39/gH9/f4AAA==');
+        audio.play().catch(() => {});
+      } catch(e) {}
+    }
+
+    function saveSession(duration) {
+      const sessions = getSessions();
+      sessions.push({
+        id: Utils.uid(),
+        type: currentMode,
+        duration,
+        task: currentTask,
+        date: Utils.today(),
+        time: new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' })
+      });
+      App.set('sessions', sessions);
+    }
+
+    function stopTimer() {
+      if (timerInterval) {
+        clearInterval(timerInterval);
+        timerInterval = null;
+      }
+    }
+
+    // Init
+    App.init({
+      name: 'pomodoro',
+      storageKey: 'app_pomodoro',
+      initialState: { sessions: [] },
+      onInit() {
+        secondsLeft = MODES.work.minutes * 60;
+        render();
+      }
+    });
+
+    // Cleanup on page unload
+    window.addEventListener('beforeunload', stopTimer);
+  </script>
+</body>
+</html>

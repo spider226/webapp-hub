@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>待办清单 - 轻应用工具集</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="manifest" href="../../manifest.json">
+  <style>
+    .todo-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      background: var(--color-surface);
+      border-bottom: 1px solid var(--color-border);
+      cursor: pointer;
+    }
+    .todo-item:first-child { border-radius: var(--radius) var(--radius) 0 0; }
+    .todo-check {
+      width: 22px;
+      height: 22px;
+      border: 2px solid var(--color-border);
+      border-radius: 50%;
+      flex-shrink: 0;
+      margin-top: 2px;
+      cursor: pointer;
+      transition: all 0.15s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .todo-check.done {
+      background: var(--color-success);
+      border-color: var(--color-success);
+    }
+    .todo-check.done::after {
+      content: '✓';
+      color: #fff;
+      font-size: 0.75rem;
+      font-weight: 700;
+    }
+    .todo-body { flex: 1; min-width: 0; }
+    .todo-title { font-weight: 500; font-size: 0.95rem; }
+    .todo-title.done { text-decoration: line-through; color: var(--color-text-secondary); }
+    .todo-meta {
+      display: flex;
+      gap: 8px;
+      margin-top: 4px;
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+    }
+    .progress-header {
+      text-align: center;
+      padding: 20px 16px 12px;
+    }
+    .progress-ring {
+      width: 100px;
+      height: 100px;
+      margin: 0 auto 10px;
+    }
+    .filter-bar {
+      display: flex;
+      gap: 4px;
+      padding: 0 16px;
+      margin-bottom: 12px;
+    }
+    .filter-btn {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      background: var(--color-bg);
+      border-radius: var(--radius-sm);
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--color-text-secondary);
+      cursor: pointer;
+    }
+    .filter-btn.active {
+      background: var(--color-primary);
+      color: #fff;
+    }
+    .priority-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .priority-high { background: #ef4444; }
+    .priority-medium { background: #f59e0b; }
+    .priority-low { background: #22c55e; }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>✅ 待办清单</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" id="btnClear">清空已完成</button>
+    </div>
+  </header>
+
+  <main class="container page" id="mainContent"></main>
+
+  <button class="fab" id="btnAdd">+</button>
+
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  <script src="../../js/core.js"></script>
+  <script>
+    let currentFilter = 'all'; // all | active | done
+
+    function getTodos() {
+      return App.get('todos') || [];
+    }
+
+    function render() {
+      const todos = getTodos();
+      const activeTodos = todos.filter(t => !t.done);
+      const doneTodos = todos.filter(t => t.done);
+      const progress = todos.length > 0 ? Math.round((doneTodos.length / todos.length) * 100) : 0;
+
+      let filtered;
+      if (currentFilter === 'active') filtered = activeTodos;
+      else if (currentFilter === 'done') filtered = doneTodos;
+      else filtered = todos;
+
+      // Sort: pinned first, then by priority
+      filtered.sort((a, b) => {
+        if (a.pinned !== b.pinned) return b.pinned - a.pinned;
+        const priOrder = { high: 0, medium: 1, low: 2 };
+        return (priOrder[a.priority] || 2) - (priOrder[b.priority] || 2);
+      });
+
+      const main = document.getElementById('mainContent');
+
+      if (todos.length === 0) {
+        main.innerHTML = '';
+        main.appendChild(UI.emptyState({
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>',
+          title: '清单空空如也',
+          description: '点击右下角 + 添加第一条待办',
+          actionText: '添加待办',
+          onAction: showAddModal
+        }));
+        return;
+      }
+
+      let listHTML = '';
+      if (filtered.length === 0) {
+        listHTML = '<div class="empty-state"><p style="color:var(--color-text-secondary)">' +
+          (currentFilter === 'active' ? '所有任务都完成啦 🎉' : '还没有完成的任务') +
+          '</p></div>';
+      } else {
+        listHTML = filtered.map(t => {
+          const priClass = 'priority-' + (t.priority || 'low');
+          const priLabel = { high: '高', medium: '中', low: '低' }[t.priority] || '低';
+          return `
+            <div class="todo-item" data-id="${t.id}">
+              <div class="todo-check ${t.done ? 'done' : ''}" data-action="toggle" data-id="${t.id}"></div>
+              <div class="todo-body">
+                <div class="todo-title ${t.done ? 'done' : ''}">${t.title}</div>
+                <div class="todo-meta">
+                  ${t.dueDate ? '<span>📅 ' + t.dueDate + '</span>' : ''}
+                  <span><span class="priority-dot ${priClass}"></span> ${priLabel}优先级</span>
+                  ${t.pinned ? '<span>📌 置顶</span>' : ''}
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      }
+
+      main.innerHTML = `
+        <div class="progress-header">
+          <svg class="progress-ring" viewBox="0 0 100 100">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-border)" stroke-width="8"/>
+            <circle cx="50" cy="50" r="42" fill="none" stroke="var(--color-success)" stroke-width="8"
+              stroke-dasharray="${2 * Math.PI * 42}" stroke-dashoffset="${2 * Math.PI * 42 * (1 - progress / 100)}"
+              stroke-linecap="round" transform="rotate(-90 50 50)" style="transition: stroke-dashoffset 0.5s"/>
+            <text x="50" y="48" text-anchor="middle" font-size="22" font-weight="700" fill="var(--color-text)">${progress}%</text>
+            <text x="50" y="66" text-anchor="middle" font-size="11" fill="var(--color-text-secondary)">完成率</text>
+          </svg>
+          <p style="font-size:0.85rem;color:var(--color-text-secondary);margin-top:4px">
+            ${doneTodos.length}/${todos.length} 已完成 · ${activeTodos.length} 待办
+          </p>
+        </div>
+
+        <div class="filter-bar">
+          <button class="filter-btn ${currentFilter === 'all' ? 'active' : ''}" data-filter="all">全部</button>
+          <button class="filter-btn ${currentFilter === 'active' ? 'active' : ''}" data-filter="active">待完成</button>
+          <button class="filter-btn ${currentFilter === 'done' ? 'active' : ''}" data-filter="done">已完成</button>
+        </div>
+
+        ${listHTML}
+        <div style="height:80px"></div>
+      `;
+
+      // Bind events
+      main.querySelectorAll('.filter-btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          currentFilter = btn.dataset.filter;
+          render();
+        });
+      });
+
+      main.querySelectorAll('[data-action="toggle"]').forEach(check => {
+        check.addEventListener('click', (e) => {
+          e.stopPropagation();
+          const id = check.dataset.id;
+          const todos = getTodos();
+          const idx = todos.findIndex(t => t.id === id);
+          if (idx !== -1) {
+            todos[idx].done = !todos[idx].done;
+            App.set('todos', todos);
+            render();
+          }
+        });
+      });
+
+      main.querySelectorAll('.todo-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+          if (e.target.closest('[data-action="toggle"]')) return;
+          const id = item.dataset.id;
+          const todo = getTodos().find(t => t.id === id);
+          if (todo) showEditModal(todo);
+        });
+      });
+    }
+
+    function showAddModal() {
+      showTodoModal(null);
+    }
+
+    function showEditModal(todo) {
+      showTodoModal(todo);
+    }
+
+    function showTodoModal(todo) {
+      const isEdit = !!todo;
+      const formHTML = `
+        <div class="form-group">
+          <label class="form-label">任务名称</label>
+          <input class="form-input" id="todoTitle" value="${isEdit ? todo.title : ''}" placeholder="我要做什么？">
+        </div>
+        <div class="form-group">
+          <label class="form-label">截止日期（可选）</label>
+          <input class="form-input" type="date" id="todoDate" value="${isEdit && todo.dueDate ? todo.dueDate : ''}">
+        </div>
+        <div class="form-group">
+          <label class="form-label">优先级</label>
+          <div style="display:flex;gap:8px" id="priorityGroup">
+            <button class="btn btn-sm priority-option ${isEdit && todo.priority === 'high' ? 'btn-danger' : 'btn-secondary'}" data-pri="high">🔴 高</button>
+            <button class="btn btn-sm priority-option ${isEdit && todo.priority === 'medium' ? 'btn-primary' : 'btn-secondary'}" data-pri="medium">🟡 中</button>
+            <button class="btn btn-sm priority-option ${(!isEdit || todo.priority === 'low') && (!isEdit || todo.priority !== 'high' && todo.priority !== 'medium') ? 'btn-primary' : 'btn-secondary'}" data-pri="low">🟢 低</button>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="checkbox-label">
+            <input type="checkbox" id="todoPinned" ${isEdit && todo.pinned ? 'checked' : ''}>
+            置顶此任务
+          </label>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg mt-3" id="btnSave">
+          ${isEdit ? '保存修改' : '添加待办'}
+        </button>
+        ${isEdit ? '<button class="btn btn-danger btn-block mt-2" id="btnDelete">删除这个任务</button>' : ''}
+      `;
+
+      const m = UI.modal({
+        title: isEdit ? '编辑任务' : '添加待办',
+        content: formHTML
+      });
+
+      let selectedPriority = isEdit ? (todo.priority || 'low') : 'low';
+
+      m.getBody().querySelectorAll('.priority-option').forEach(btn => {
+        btn.addEventListener('click', () => {
+          m.getBody().querySelectorAll('.priority-option').forEach(b => {
+            b.className = 'btn btn-sm btn-secondary priority-option';
+          });
+          btn.className = 'btn btn-sm btn-primary priority-option';
+          selectedPriority = btn.dataset.pri;
+        });
+      });
+
+      m.getBody().querySelector('#btnSave').addEventListener('click', () => {
+        const title = m.getBody().querySelector('#todoTitle').value.trim();
+        if (!title) { UI.toast('请输入任务名称', 'error'); return; }
+
+        const dueDate = m.getBody().querySelector('#todoDate').value;
+        const pinned = m.getBody().querySelector('#todoPinned').checked;
+
+        const todos = getTodos();
+        if (isEdit) {
+          const idx = todos.findIndex(t => t.id === todo.id);
+          if (idx !== -1) {
+            todos[idx] = { ...todos[idx], title, dueDate, priority: selectedPriority, pinned };
+          }
+        } else {
+          todos.push({
+            id: Utils.uid(),
+            title,
+            done: false,
+            dueDate,
+            priority: selectedPriority,
+            pinned,
+            createdAt: Utils.today()
+          });
+        }
+
+        App.set('todos', todos);
+        m.close();
+        render();
+        UI.toast(isEdit ? '已更新' : '已添加', 'success');
+      });
+
+      if (isEdit) {
+        m.getBody().querySelector('#btnDelete').addEventListener('click', async () => {
+          const ok = await UI.confirm({ title: '删除任务', message: '确定删除「' + todo.title + '」吗？', danger: true });
+          if (ok) {
+            const todos = getTodos().filter(t => t.id !== todo.id);
+            App.set('todos', todos);
+            m.close();
+            render();
+            UI.toast('已删除', 'info');
+          }
+        });
+      }
+    }
+
+    // Init
+    App.init({
+      name: 'todo',
+      storageKey: 'app_todo',
+      initialState: {
+        todos: [
+          { id: 'td1', title: '完成项目方案初稿', done: false, priority: 'high', dueDate: '2026-05-27', pinned: true, createdAt: '2026-05-24' },
+          { id: 'td2', title: '去超市买菜', done: true, priority: 'low', dueDate: '', pinned: false, createdAt: '2026-05-24' },
+          { id: 'td3', title: '每周运动3次', done: false, priority: 'medium', dueDate: '', pinned: false, createdAt: '2026-05-24' },
+        ]
+      },
+      onInit() {
+        render();
+
+        document.getElementById('btnAdd').addEventListener('click', showAddModal);
+
+        document.getElementById('btnClear').addEventListener('click', async () => {
+          const doneCount = getTodos().filter(t => t.done).length;
+          if (doneCount === 0) {
+            UI.toast('没有已完成的任务', 'info');
+            return;
+          }
+          const ok = await UI.confirm({
+            title: '清空已完成',
+            message: '确定要删除 ' + doneCount + ' 个已完成的任务吗？',
+            danger: true
+          });
+          if (ok) {
+            App.set('todos', getTodos().filter(t => !t.done));
+            render();
+            UI.toast('已清空', 'info');
+          }
+        });
+      }
+    });
+  </script>
+</body>
+</html>

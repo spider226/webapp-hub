@@ -1,0 +1,430 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no">
+  <title>习惯打卡 - 轻应用工具集</title>
+  <link rel="stylesheet" href="../../css/style.css">
+  <link rel="manifest" href="../../manifest.json">
+  <style>
+    .habit-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 16px;
+      margin-bottom: 10px;
+    }
+    .habit-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+    }
+    .habit-name {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-weight: 600;
+      font-size: 0.95rem;
+    }
+    .habit-streak {
+      font-size: 0.8rem;
+      color: var(--color-primary);
+      font-weight: 600;
+      background: var(--color-primary-light);
+      padding: 3px 10px;
+      border-radius: 100px;
+    }
+    .habit-week {
+      display: flex;
+      gap: 6px;
+      justify-content: space-between;
+    }
+    .day-dot {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 4px;
+      flex: 1;
+    }
+    .day-circle {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      border: 2px solid var(--color-border);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.15s;
+      background: var(--color-surface);
+    }
+    .day-circle.checked {
+      background: var(--color-success);
+      border-color: var(--color-success);
+      color: #fff;
+    }
+    .day-circle.today {
+      border-color: var(--color-primary);
+      border-width: 2.5px;
+    }
+    .day-circle.missed {
+      background: #fef2f2;
+      border-color: #fecaca;
+      color: #f87171;
+    }
+    .day-label {
+      font-size: 0.65rem;
+      color: var(--color-text-secondary);
+    }
+    .streak-fire {
+      display: inline-flex;
+      align-items: center;
+      gap: 2px;
+    }
+    .emoji-icon {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <h1>🌟 习惯打卡</h1>
+    <div class="header-actions">
+      <button class="btn btn-ghost btn-sm" id="btnExport">导出</button>
+    </div>
+  </header>
+
+  <main class="container page" id="mainContent"></main>
+
+  <button class="fab" id="btnAdd">+</button>
+
+  <script src="../../js/utils.js"></script>
+  <script src="../../js/components.js"></script>
+  <script src="../../js/core.js"></script>
+  <script>
+    const EMOJI_OPTIONS = ['💪', '📚', '🏃', '💧', '🧘', '✍', '🎯', '🥗', '😴', '💻', '🎨', '🎵', '🌱', '📝', '🚭', '⚡'];
+
+    function getHabits() {
+      return App.get('habits') || [];
+    }
+
+    function getWeekDates() {
+      const dates = [];
+      const now = new Date();
+      const dayOfWeek = now.getDay();
+      const monday = new Date(now);
+      monday.setDate(now.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(monday);
+        d.setDate(monday.getDate() + i);
+        dates.push(Utils.fmtDate(d));
+      }
+      return dates;
+    }
+
+    function isToday(dateStr) {
+      return dateStr === Utils.today();
+    }
+
+    function getStreak(habit) {
+      let streak = 0;
+      const today = new Date();
+      for (let i = 0; i < 365; i++) {
+        const d = new Date(today);
+        d.setDate(today.getDate() - i);
+        const dateStr = Utils.fmtDate(d);
+        if (habit.checks && habit.checks[dateStr]) {
+          streak++;
+        } else if (i > 0) {
+          break;
+        }
+      }
+      return streak;
+    }
+
+    function getLongestStreak(habit) {
+      if (!habit.checks) return 0;
+      const dates = Object.keys(habit.checks).sort();
+      if (dates.length === 0) return 0;
+
+      let longest = 0, current = 1;
+      for (let i = 1; i < dates.length; i++) {
+        const prev = new Date(dates[i - 1]);
+        const curr = new Date(dates[i]);
+        const diff = (curr - prev) / 86400000;
+        if (diff === 1) {
+          current++;
+        } else {
+          longest = Math.max(longest, current);
+          current = 1;
+        }
+      }
+      return Math.max(longest, current);
+    }
+
+    function render() {
+      const habits = getHabits();
+      const weekDates = getWeekDates();
+      const today = Utils.today();
+      const main = document.getElementById('mainContent');
+
+      if (habits.length === 0) {
+        main.innerHTML = '';
+        main.appendChild(UI.emptyState({
+          icon: '<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>',
+          title: '还没有习惯',
+          description: '点击右下角 + 添加你想坚持的习惯',
+          actionText: '添加习惯',
+          onAction: showAddModal
+        }));
+        return;
+      }
+
+      const todayChecks = habits.filter(h => h.checks && h.checks[today]).length;
+      const totalHabits = habits.length;
+
+      let habitsHTML = habits.map((h, idx) => {
+        const streak = getStreak(h);
+        const checks = h.checks || {};
+        const weeklyHTML = weekDates.map(date => {
+          const checked = !!checks[date];
+          const today = isToday(date);
+          let cls = '';
+          if (checked) cls = 'checked';
+          else if (today) cls = 'today';
+          else {
+            // Check if date is in the past and missed
+            const d = new Date(date);
+            if (d < new Date(Utils.today())) cls = 'missed';
+          }
+          return `
+            <div class="day-dot">
+              <div class="day-circle ${cls}" data-habit="${h.id}" data-date="${date}">
+                ${checked ? '✓' : date.slice(8)}
+              </div>
+              <span class="day-label">${Utils.dayOfWeek(date).replace('周', '')}</span>
+            </div>
+          `;
+        }).join('');
+
+        return `
+          <div class="habit-card">
+            <div class="habit-header">
+              <div class="habit-name">
+                <div class="emoji-icon" style="background:${h.color || '#eef2ff'}">${h.emoji || '🌟'}</div>
+                ${h.name}
+              </div>
+              <div class="habit-streak">
+                <span class="streak-fire">🔥 ${streak} 天</span>
+              </div>
+            </div>
+            <div class="habit-week">${weeklyHTML}</div>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-top:8px;font-size:0.75rem;color:var(--color-text-secondary)">
+              <span>目标：${h.frequency || '每天'}</span>
+              <span>最长记录：${getLongestStreak(h)} 天</span>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      main.innerHTML = `
+        <div style="text-align:center;padding:16px">
+          <div style="font-size:2.2rem;font-weight:800;color:var(--color-primary)">${todayChecks}/${totalHabits}</div>
+          <div style="font-size:0.85rem;color:var(--color-text-secondary)">今日完成</div>
+          ${totalHabits > 0 ? UI.progressBar(Math.round((todayChecks / totalHabits) * 100), { showLabel: false, className: todayChecks === totalHabits ? 'success' : '' }).outerHTML : ''}
+        </div>
+        ${habitsHTML}
+        <div style="height:80px"></div>
+      `;
+
+      // Bind day circle clicks
+      main.querySelectorAll('.day-circle').forEach(circle => {
+        circle.addEventListener('click', () => {
+          const habitId = circle.dataset.habit;
+          const date = circle.dataset.date;
+          const habits = getHabits();
+          const habit = habits.find(h => h.id === habitId);
+          if (!habit) return;
+
+          if (!habit.checks) habit.checks = {};
+
+          if (habit.checks[date]) {
+            delete habit.checks[date];
+          } else {
+            habit.checks[date] = true;
+          }
+
+          App.set('habits', habits);
+          render();
+        });
+      });
+
+      // Long press habit card to edit/delete
+      main.querySelectorAll('.habit-card').forEach((card, i) => {
+        card.addEventListener('contextmenu', (e) => {
+          e.preventDefault();
+          showHabitMenu(habits[i]);
+        });
+        card.addEventListener('dblclick', () => {
+          showHabitMenu(habits[i]);
+        });
+      });
+    }
+
+    async function showHabitMenu(habit) {
+      const action = await new Promise((resolve) => {
+        const content = document.createElement('div');
+        content.innerHTML = `
+          <button class="btn btn-secondary btn-block mb-2" data-action="edit">✏ 编辑习惯</button>
+          <button class="btn btn-secondary btn-block mb-2" data-action="reset">🔄 重置打卡记录</button>
+          <button class="btn btn-danger btn-block" data-action="delete">🗑 删除习惯</button>
+        `;
+        content.addEventListener('click', (e) => {
+          const action = e.target.closest('button')?.dataset.action;
+          if (action) resolve(action);
+        });
+        UI.modal({ title: habit.name, content });
+      });
+
+      if (action === 'edit') showEditModal(habit);
+      else if (action === 'delete') {
+        const ok = await UI.confirm({ title: '删除习惯', message: '确定删除「' + habit.name + '」及所有打卡记录吗？', danger: true });
+        if (ok) {
+          App.set('habits', getHabits().filter(h => h.id !== habit.id));
+          render();
+          UI.toast('已删除', 'info');
+        }
+      } else if (action === 'reset') {
+        const ok = await UI.confirm({ title: '重置记录', message: '确定清除「' + habit.name + '」的所有打卡记录吗？', danger: true });
+        if (ok) {
+          const habits = getHabits();
+          const h = habits.find(hh => hh.id === habit.id);
+          if (h) { h.checks = {}; App.set('habits', habits); }
+          render();
+          UI.toast('已重置', 'info');
+        }
+      }
+    }
+
+    function showAddModal() {
+      showHabitModal(null);
+    }
+
+    function showEditModal(habit) {
+      showHabitModal(habit);
+    }
+
+    function showHabitModal(habit) {
+      const isEdit = !!habit;
+      let selectedEmoji = habit ? habit.emoji : '💪';
+      let selectedColor = habit ? habit.color : '#eef2ff';
+
+      const formHTML = `
+        <div class="form-group">
+          <label class="form-label">习惯名称</label>
+          <input class="form-input" id="habitName" value="${isEdit ? habit.name : ''}" placeholder="例如：每天喝水、早起打卡">
+        </div>
+        <div class="form-group">
+          <label class="form-label">图标</label>
+          <div style="display:grid;grid-template-columns:repeat(8,1fr);gap:6px" id="emojiGrid"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">颜色</label>
+          <div style="display:flex;gap:8px" id="colorGrid"></div>
+        </div>
+        <button class="btn btn-primary btn-block btn-lg mt-3" id="btnSave">
+          ${isEdit ? '保存修改' : '开始打卡'}
+        </button>
+      `;
+
+      const m = UI.modal({ title: isEdit ? '编辑习惯' : '新建习惯', content: formHTML });
+
+      // Emoji grid
+      const emojiGrid = m.getBody().querySelector('#emojiGrid');
+      EMOJI_OPTIONS.forEach(emoji => {
+        const btn = document.createElement('button');
+        btn.className = 'cat-icon-btn' + (emoji === selectedEmoji ? ' selected' : '');
+        btn.textContent = emoji;
+        btn.style.cssText = 'font-size:1.3rem;width:40px;height:40px;border-radius:8px;padding:0';
+        btn.addEventListener('click', () => {
+          emojiGrid.querySelectorAll('button').forEach(b => b.classList.remove('selected'));
+          btn.classList.add('selected');
+          selectedEmoji = emoji;
+        });
+        emojiGrid.appendChild(btn);
+      });
+
+      // Color grid
+      const colors = ['#eef2ff', '#fce7f3', '#fff7ed', '#dcfce7', '#eff6ff', '#fef3c7', '#f3e8ff', '#fee2e2', '#f0fdf4', '#f8fafc'];
+      const colorGrid = m.getBody().querySelector('#colorGrid');
+      colors.forEach(color => {
+        const btn = document.createElement('button');
+        btn.style.cssText = `width:32px;height:32px;border-radius:50%;background:${color};border:2px solid ${color === selectedColor ? 'var(--color-primary)' : 'var(--color-border)'};cursor:pointer`;
+        btn.addEventListener('click', () => {
+          colorGrid.querySelectorAll('button').forEach(b => b.style.borderColor = 'var(--color-border)');
+          btn.style.borderColor = 'var(--color-primary)';
+          selectedColor = color;
+        });
+        colorGrid.appendChild(btn);
+      });
+
+      m.getBody().querySelector('#btnSave').addEventListener('click', () => {
+        const name = m.getBody().querySelector('#habitName').value.trim();
+        if (!name) { UI.toast('请输入习惯名称', 'error'); return; }
+
+        const habits = getHabits();
+        if (isEdit) {
+          const idx = habits.findIndex(h => h.id === habit.id);
+          if (idx !== -1) { habits[idx] = { ...habits[idx], name, emoji: selectedEmoji, color: selectedColor }; }
+        } else {
+          habits.push({
+            id: Utils.uid(),
+            name,
+            emoji: selectedEmoji,
+            color: selectedColor,
+            checks: {},
+            frequency: '每天',
+            createdAt: Utils.today()
+          });
+        }
+
+        App.set('habits', habits);
+        m.close();
+        render();
+        UI.toast(isEdit ? '已更新' : '新习惯已添加', 'success');
+      });
+    }
+
+    // Init
+    App.init({
+      name: 'habit',
+      storageKey: 'app_habit',
+      initialState: {
+        habits: [
+          { id: 'h1', name: '喝8杯水', emoji: '💧', color: '#eff6ff', checks: {}, frequency: '每天', createdAt: '2026-05-24' },
+          { id: 'h2', name: '阅读30分钟', emoji: '📚', color: '#eef2ff', checks: {}, frequency: '每天', createdAt: '2026-05-24' },
+          { id: 'h3', name: '早睡早起', emoji: '😴', color: '#f3e8ff', checks: {}, frequency: '每天', createdAt: '2026-05-24' },
+        ]
+      },
+      onInit() {
+        render();
+        document.getElementById('btnAdd').addEventListener('click', showAddModal);
+        document.getElementById('btnExport').addEventListener('click', () => {
+          App.exportData('habit-backup');
+          UI.toast('数据已导出', 'success');
+        });
+      }
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,445 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>闲鱼运营指南 - 轻应用代做</title>
+  <style>
+    :root {
+      --primary: #6366f1;
+      --bg: #f8fafc;
+      --surface: #fff;
+      --text: #1e293b;
+      --text-secondary: #64748b;
+      --border: #e2e8f0;
+      --radius: 12px;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.8;
+      max-width: 680px;
+      margin: 0 auto;
+      padding: 24px 16px 80px;
+    }
+    h1 { font-size: 1.6rem; margin-bottom: 8px; }
+    h2 {
+      font-size: 1.2rem;
+      margin: 32px 0 12px;
+      padding-bottom: 8px;
+      border-bottom: 2px solid var(--primary);
+    }
+    h3 { font-size: 1rem; margin: 20px 0 8px; }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px;
+      margin-bottom: 16px;
+    }
+    .copy-block {
+      background: #1e293b;
+      color: #e2e8f0;
+      padding: 16px;
+      border-radius: 8px;
+      font-size: 0.85rem;
+      white-space: pre-wrap;
+      position: relative;
+      margin: 10px 0;
+    }
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: rgba(255,255,255,0.15);
+      border: none;
+      color: #fff;
+      padding: 4px 12px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+    .tag {
+      display: inline-block;
+      padding: 2px 10px;
+      border-radius: 100px;
+      font-size: 0.8rem;
+      font-weight: 600;
+      background: #eef2ff;
+      color: #6366f1;
+    }
+    ol, ul { padding-left: 20px; margin: 8px 0; }
+    li { margin: 6px 0; }
+    table { width: 100%; border-collapse: collapse; margin: 12px 0; }
+    th, td { padding: 10px 12px; border: 1px solid var(--border); text-align: left; font-size: 0.9rem; }
+    th { background: var(--bg); font-weight: 600; }
+    .highlight { color: var(--primary); font-weight: 600; }
+    .danger { color: #dc2626; }
+    .success { color: #16a34a; }
+  </style>
+</head>
+<body>
+
+<h1>⚡ 轻应用代做 | 闲鱼运营完整指南</h1>
+<p style="color:var(--text-secondary)">本文档包含你在闲鱼上架、接单、交付所需的一切</p>
+
+<!-- ====== 部署 ====== -->
+<h2>一、部署上线（必须先做）</h2>
+
+<div class="card">
+  <h3>方案A：GitHub Pages（推荐，免费）</h3>
+  <ol>
+    <li>注册 GitHub 账号：<a href="https://github.com/signup" target="_blank">github.com/signup</a></li>
+    <li>创建新仓库，命名为 <strong>webapp-hub</strong></li>
+    <li>在项目目录执行以下命令：</li>
+  </ol>
+
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>
+cd "C:\Users\Administrator\Desktop\项目\webapp-hub"
+git remote add origin https://github.com/你的用户名/webapp-hub.git
+git branch -M main
+git push -u origin main
+  </div>
+
+  <ol start="4">
+    <li>进入仓库 Settings → Pages → Source 选 <strong>main 分支</strong> → Save</li>
+    <li>等待1-2分钟，你的网站就在 <code>https://你的用户名.github.io/webapp-hub/</code> 上线了</li>
+  </ol>
+  <p style="margin-top:12px;font-size:0.85rem;color:var(--text-secondary)">
+    ⚠ 如果国内访问 GitHub Pages 慢，可以同时部署到 Vercel（注册后用 GitHub 账号导入即可，也免费）
+  </p>
+</div>
+
+<div class="card">
+  <h3>方案B：Vercel（国内访问更快）</h3>
+  <ol>
+    <li>打开 <a href="https://vercel.com" target="_blank">vercel.com</a>，用 GitHub 账号登录</li>
+    <li>点击 "New Project" → 选择 webapp-hub 仓库 → Deploy</li>
+    <li>自动获得 <code>https://webapp-hub.vercel.app</code> 域名</li>
+  </ol>
+</div>
+
+<!-- ====== 闲鱼商品 ====== -->
+<h2>二、闲鱼商品上架</h2>
+
+<p>建议一次上架 <strong>5个商品链接</strong>，以下为每个链接的完整配置。</p>
+
+<!-- 商品1 -->
+<div class="card">
+  <h3>链接1：引流低价款（定价 9.9 元）</h3>
+  <p>目的：低价引流，积累销量和好评</p>
+
+  <p style="margin-top:12px"><strong>标题：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>AI定制随机决策器/今日吃啥/选择困难症救星/可自定义选项/打开即用/无需下载</div>
+
+  <p><strong>描述：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>【产品介绍】
+一个帮你做决定的小工具！纠结中午吃啥、周末去哪玩、选哪个方案？让它帮你决定！
+
+【核心功能】
+✅ 自定义选项（想吃啥自己加）
+✅ 转盘动画，仪式感拉满
+✅ 历史记录，看看你都选过啥
+✅ 手机/电脑/平板都能用
+✅ 不需要下载，浏览器打开即用
+
+【交付形式】
+下单后发送网页链接，点开就能用，永久有效。
+
+【关于定制】
+如果你有特殊需求（比如做个打卡工具、记账本等），可以拍我的"定制服务"链接。
+拍之前可以先聊需求，确定能做再接。
+
+【售后保障】
+终身使用，功能问题免费修复。</div>
+
+  <p><strong>价格：</strong>9.9元 &nbsp;|&nbsp; <strong>库存：</strong>999 &nbsp;|&nbsp; <strong>分类：</strong>虚拟商品 → 软件/服务</p>
+</div>
+
+<!-- 商品2 -->
+<div class="card">
+  <h3>链接2：爆款倒数日（定价 19.9 元）</h3>
+  <p><strong>标题：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>AI定制倒数日纪念日/重要日子提醒/手机桌面一键打开/情侣生日考试倒计时/送永久使用</div>
+
+  <p><strong>描述：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>【产品介绍】
+再也不忘记重要的日子！记录生日、纪念日、考试、假期，随时知道还有多少天。
+
+【核心功能】
+✅ 添加重要事件，自动计算剩余天数
+✅ 支持分类：💕恋爱 🎂生日 📚考试 🎉假期 💼工作
+✅ 按时间排序，最临近的置顶
+✅ 支持数据导出备份
+✅ 手机/电脑/平板通用
+✅ 添加到手机桌面，像App一样使用
+✅ 隐私安全：数据只存在你的手机里
+
+【适用场景】
+- 记录和TA的每一个纪念日
+- 考研/高考/考公倒计时
+- 朋友家人生日提醒
+- 假期倒计时
+
+【交付形式】
+下单后发送专属网页链接，点开即用。
+
+【售后保障】
+终身使用 · 功能问题免费修 · 不绑定设备</div>
+
+  <p><strong>价格：</strong>19.9元 &nbsp;|&nbsp; <strong>库存：</strong>999</p>
+</div>
+
+<!-- 商品3 -->
+<div class="card">
+  <h3>链接3：待办清单（定价 19.9 元）</h3>
+  <p><strong>标题：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>AI定制待办清单Todo任务管理/高效工作学习/优先级置顶/完成率统计/无需下载/当日交付</div>
+
+  <p><strong>描述：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>【产品介绍】
+一个干净好用的待办清单工具，帮你高效完成任务。
+
+【核心功能】
+✅ 添加/编辑/删除任务
+✅ 三种优先级：高🟡中🟢低
+✅ 支持置顶重要任务
+✅ 截止日期设置
+✅ 完成率环形统计图
+✅ 筛选：全部/待完成/已完成
+✅ 一键清空已完成任务
+
+【交付形式】
+下单后发送网页链接，打开即用。
+
+【售后保障】
+终身使用 · Bug免费修复</div>
+
+  <p><strong>价格：</strong>19.9元</p>
+</div>
+
+<!-- 商品4 -->
+<div class="card">
+  <h3>链接4：记账本（定价 29.9 元）</h3>
+  <p><strong>标题：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>AI定制记账本/收支管理/分类统计/月度报表/数据导出/隐私安全/不连网/当日交付</div>
+
+  <p><strong>描述：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>【产品介绍】
+一个简单好用的记账本，帮你清楚掌握每一笔收支。
+
+【核心功能】
+✅ 记录收入/支出
+✅ 8大支出分类 + 7大收入分类
+✅ 月度余额自动计算
+✅ 收支对比卡片
+✅ 分类消费排行
+✅ 数据导出备份
+✅ 所有数据只存本地，不上传服务器，绝对隐私
+
+【交付形式】
+下单后发送网页链接，打开即用。
+
+【售后保障】
+终身使用 · 功能问题免费修复</div>
+
+  <p><strong>价格：</strong>29.9元</p>
+</div>
+
+<!-- 商品5 -->
+<div class="card">
+  <h3>链接5：定制服务（定价 49.9 元起）</h3>
+  <p><strong>标题：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>AI量身定制您的专属小工具/按需求开发/满意为止/源码交付/小程序/网页/工具应用</div>
+
+  <p><strong>描述：</strong></p>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>【关于定制】
+你有独特的需求？告诉我，我用AI帮你快速开发出来。
+
+【我能做什么】
+📌 各类工具：打卡、计时、计算器、记录器、管理工具
+📌 数据管理：客户信息、订单跟踪、库存管理
+📌 互动小应用：投票、抽奖、问卷、测试
+📌 个人定制：情侣专属页面、生日祝福页、纪念册
+
+【定价参考】
+- 简单工具（1个核心功能）：49.9元起
+- 中等工具（3-5个功能）：79.9元起
+- 复杂工具（5个以上功能+数据管理）：99.9元起
+- 源码交付加收 50%（给你源码，你可以自己改）
+
+【流程】
+1. 拍前先聊：描述你的需求（文字/截图都可以）
+2. 我评估难度和时间，给你报价
+3. 拍下付款→开发→发你预览→确认收货
+4. 含2轮免费修改
+
+【售后保障】
+功能Bug终身免费修 · 小改动免费 · 满意为止</div>
+
+  <p><strong>价格：</strong>49.9元起</p>
+</div>
+
+<!-- ====== 主图制作 ====== -->
+<h2>三、商品主图制作指南</h2>
+
+<div class="card">
+  <p>每个商品需要 <strong>5张主图 + 1个视频（可选但推荐）</strong></p>
+
+  <h3>5张主图规划：</h3>
+  <ol>
+    <li><strong>第1张：封面图</strong> — 应用名称 + 一句卖点，纯色背景 + 大字标题（Canva做）</li>
+    <li><strong>第2张：手机截图</strong> — 应用在手机上的主界面（F12开发者工具截图）</li>
+    <li><strong>第3张：功能截图</strong> — 展示1-2个核心功能</li>
+    <li><strong>第4张：卖点总结</strong> — 3个核心优势（无需下载/隐私安全/永久使用）</li>
+    <li><strong>第5张：使用说明</strong> — 如何添加到手机桌面（三步教程）</li>
+  </ol>
+
+  <h3>截图工具：</h3>
+  <ul>
+    <li><strong>电脑端：</strong>浏览器按 F12 → 切换设备工具栏(Ctrl+Shift+M) → 选 iPhone 14 Pro → 截图</li>
+    <li><strong>手机端：</strong>直接在手机上打开网站截图</li>
+  </ul>
+
+  <h3>封面图制作：</h3>
+  <ul>
+    <li>用 <a href="https://www.canva.cn" target="_blank">Canva（免费）</a></li>
+    <li>画布尺寸：800x800px（闲鱼标准）</li>
+    <li>背景：渐变色或纯色（建议用应用的主题色）</li>
+    <li>文字：大号粗体，3-5个字即可</li>
+  </ul>
+</div>
+
+<!-- ====== 日常运营 ====== -->
+<h2>四、日常运营SOP</h2>
+
+<div class="card">
+  <h3>每天必做（15分钟）：</h3>
+  <ol>
+    <li>⏰ <strong>早8点 + 晚8点</strong>：擦亮每个商品（闲鱼"擦亮"功能，免费曝光）</li>
+    <li>📩 <strong>回复消息</strong>：打开闲鱼通知，回复买家咨询（目标：1小时内回复）</li>
+    <li>🔍 <strong>搜索同行</strong>：搜"定制小程序""代做工具""AI定制应用"，看竞品做了什么</li>
+  </ol>
+
+  <h3>接单后的交付SOP：</h3>
+  <ol>
+    <li><strong>确认需求</strong> — "亲，您要的是XX功能的倒数日对吗？"</li>
+    <li><strong>告知时间</strong> — "标准版2小时内交付，定制版1-3天"</li>
+    <li><strong>开发+测试</strong> — 用模板快速生成，确保手机/电脑都能用</li>
+    <li><strong>发送链接</strong> — "这是您的专属链接：https://xxx.github.io/webapp-hub/apps/countdown/"</li>
+    <li><strong>发送使用说明</strong>（见下方模板）</li>
+    <li><strong>提醒确认收货</strong> — "如果好用的话可以确认收货，有问题随时找我~"</li>
+  </ol>
+
+  <h3>使用说明模板（发给客户）：</h3>
+  <div class="copy-block">
+    <button class="copy-btn" onclick="copy(this)">复制</button>【使用说明】
+1. 点击链接即可使用，不需要下载任何App
+2. 建议添加到手机桌面：
+   - iPhone：浏览器打开 → 底部"分享" → "添加到主屏幕"
+   - Android：浏览器打开 → 菜单"添加到主屏幕"
+3. 所有数据保存在您的手机/电脑里，不联网不上传，非常安全
+4. 如果遇到问题随时找我</div>
+</div>
+
+<!-- ====== 常见问题 ====== -->
+<h2>五、买家常见问题话术</h2>
+
+<div class="card">
+  <table>
+    <tr><th>买家问</th><th>你回答</th></tr>
+    <tr>
+      <td>需要下载吗？</td>
+      <td>不需要，浏览器打开就能用。加到手机桌面后和App一模一样。</td>
+    </tr>
+    <tr>
+      <td>数据安全吗？</td>
+      <td>所有数据只保存在你的手机里，不上传到任何服务器，比App还安全。</td>
+    </tr>
+    <tr>
+      <td>能改功能吗？</td>
+      <td>标准版含固定功能，如果需要定制可以拍我的定制链接，按需求报价。</td>
+    </tr>
+    <tr>
+      <td>换手机了数据还在吗？</td>
+      <td>可以用导出功能把数据备份到文件，换手机后导入即可。</td>
+    </tr>
+    <tr>
+      <td>能用多久？</td>
+      <td>永久使用。只要网站还在，你就能一直用。</td>
+    </tr>
+    <tr>
+      <td>为什么这么便宜？</td>
+      <td>AI辅助开发效率高，我想积累好评和销量，后面会涨价的~</td>
+    </tr>
+    <tr>
+      <td>能退款吗？</td>
+      <td>虚拟商品发货后不支持退款，但功能问题免费修到满意为止。</td>
+    </tr>
+  </table>
+</div>
+
+<!-- ====== 风险提醒 ====== -->
+<h2>六、注意事项与风险提醒</h2>
+
+<div class="card">
+  <ol>
+    <li><span class="danger">⚠ 绝对不要主动引导客户加微信</span>，闲鱼聊天中提"加微信"可能被检测为导流封号。如果买家主动问，可以说"闲鱼沟通更方便"</li>
+    <li><span class="danger">⚠ 不要用"小程序"这个词</span>如果商品不是真正的微信小程序。用"小工具""轻应用""网页工具"代替</li>
+    <li>商品发布时选择 <strong>"虚拟商品"</strong> 分类，不要选实物</li>
+    <li>不要直接搬运别人的图片和文案，自己做</li>
+    <li>前几单可以让朋友拍，积累真实好评</li>
+    <li>定价策略：前期低价（9.9-19.9）冲销量，30单后涨价到29.9-39.9</li>
+  </ol>
+</div>
+
+<!-- ====== 关键词 ====== -->
+<h2>七、闲鱼搜索关键词（标题必含）</h2>
+
+<div class="card">
+  <p>以下关键词覆盖了闲鱼主流搜索需求，标题中尽量包含：</p>
+  <p>
+    <span class="tag">AI定制</span>
+    <span class="tag">小工具</span>
+    <span class="tag">倒数日</span>
+    <span class="tag">待办清单</span>
+    <span class="tag">记账本</span>
+    <span class="tag">番茄钟</span>
+    <span class="tag">打卡</span>
+    <span class="tag">无需下载</span>
+    <span class="tag">打开即用</span>
+    <span class="tag">手机桌面</span>
+    <span class="tag">永久使用</span>
+    <span class="tag">代做</span>
+    <span class="tag">定制</span>
+    <span class="tag">工具应用</span>
+    <span class="tag">提醒</span>
+    <span class="tag">隐私安全</span>
+  </p>
+</div>
+
+<script>
+function copy(btn) {
+  const block = btn.closest('.copy-block');
+  const text = block.textContent.replace(/^\s*复制\s*/, '').trim();
+  navigator.clipboard.writeText(text).then(() => {
+    btn.textContent = '已复制!';
+    setTimeout(() => btn.textContent = '复制', 1500);
+  });
+}
+</script>
+</body>
+</html>

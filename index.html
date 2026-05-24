@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="light">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>轻应用工具集</title>
+  <meta name="description" content="实用的轻量级效率工具集合，无需下载安装，打开即用">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="manifest" href="manifest.json">
+  <style>
+    .hero {
+      text-align: center;
+      padding: 32px 16px 24px;
+    }
+    .hero-icon {
+      width: 72px;
+      height: 72px;
+      background: var(--color-primary-light);
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 16px;
+      font-size: 36px;
+    }
+    .hero h1 {
+      font-size: 1.5rem;
+      margin-bottom: 6px;
+    }
+    .hero p {
+      color: var(--color-text-secondary);
+      font-size: 0.9rem;
+    }
+    .app-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      padding: 0 16px 100px;
+    }
+    .app-card {
+      background: var(--color-surface);
+      border: 1px solid var(--color-border);
+      border-radius: var(--radius);
+      padding: 20px 16px;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.15s;
+      text-decoration: none;
+      color: var(--color-text);
+      -webkit-tap-highlight-color: transparent;
+    }
+    .app-card:active {
+      transform: scale(0.97);
+      background: var(--color-bg);
+    }
+    .app-card-icon {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      margin: 0 auto 10px;
+      font-size: 26px;
+    }
+    .app-card h3 {
+      font-size: 0.9rem;
+      margin-bottom: 4px;
+    }
+    .app-card p {
+      font-size: 0.75rem;
+      color: var(--color-text-secondary);
+      line-height: 1.4;
+    }
+  </style>
+</head>
+<body>
+  <div class="hero">
+    <div class="hero-icon">⚡</div>
+    <h1>轻应用工具集</h1>
+    <p>5款实用小工具，无需下载，打开即用</p>
+  </div>
+
+  <div class="app-grid">
+    <a class="app-card" href="apps/countdown/">
+      <div class="app-card-icon" style="background:#fef3c7">⏳</div>
+      <h3>倒数日</h3>
+      <p>记录重要日子，不再忘记</p>
+    </a>
+    <a class="app-card" href="apps/todo/">
+      <div class="app-card-icon" style="background:#eef2ff">✅</div>
+      <h3>待办清单</h3>
+      <p>高效任务管理，专注完成</p>
+    </a>
+    <a class="app-card" href="apps/bookkeeping/">
+      <div class="app-card-icon" style="background:#dcfce7">💰</div>
+      <h3>记账本</h3>
+      <p>收支明细，轻松掌握</p>
+    </a>
+    <a class="app-card" href="apps/pomodoro/">
+      <div class="app-card-icon" style="background:#fee2e2">🍅</div>
+      <h3>番茄钟</h3>
+      <p>专注计时，高效工作</p>
+    </a>
+    <a class="app-card" href="apps/habit/">
+      <div class="app-card-icon" style="background:#f3e8ff">🌟</div>
+      <h3>习惯打卡</h3>
+      <p>每日坚持，成就更好的自己</p>
+    </a>
+  </div>
+
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('sw.js');
+    }
+  </script>
+</body>
+</html>

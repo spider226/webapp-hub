@@ -1,0 +1,22 @@
+{
+  "name": "轻应用工具集",
+  "short_name": "轻应用",
+  "description": "实用的轻量级效率工具集合",
+  "start_url": "/webapp-hub/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#6366f1",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/webapp-hub/assets/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "/webapp-hub/assets/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
